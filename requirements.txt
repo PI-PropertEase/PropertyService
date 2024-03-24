@@ -3,3 +3,5 @@ uvicorn==0.28.0
 python-dotenv==1.0.1
 firebase-admin==6.5.0
 motor==3.3.2
+pydantic-extra-types==2.6.0
+phonenumbers==8.13.32
