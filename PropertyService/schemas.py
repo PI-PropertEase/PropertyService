@@ -1,12 +1,12 @@
 from typing import Optional, Annotated
-from pydantic import BaseModel, BeforeValidator, Field, AfterValidator
+from pydantic import BaseModel, BeforeValidator, Field
 from pydantic_extra_types.phone_numbers import PhoneNumber
 from enum import Enum
 
 # Represents an ObjectId field in the database.
 # It will be represented as a `str` on the model so that it can be serialized to JSON.
 PyObjectId = Annotated[str, BeforeValidator(str)]
-TimeHourMinute = Annotated[str, Field(pattern=r'^\d\d:\d\d$')]
+TimeHourMinute = Annotated[str, Field(pattern=r'^(2[0-3]|[01][0-9]):([0-5][0-9])$')]
 PhoneNumber.phone_format = 'E164'  # 'INTERNATIONAL'
 
 
@@ -81,3 +81,19 @@ class Property(BaseModel):
     additional_info: str
     cancellation_policy: str
     contacts: list[Contact]
+
+
+class UpdateProperty(BaseModel):
+    title: Optional[str] = None
+    address: Optional[str] = None
+    description: Optional[str] = None
+    number_guests: Optional[int] = None
+    square_meters: Optional[int] = None
+    bedrooms: Optional[dict[str, Bedroom]] = None
+    bathrooms: Optional[dict[str, Bathroom]] = None
+    amenities: Optional[list[Amenity]] = None
+    house_rules: Optional[HouseRules] = None
+    additional_info: Optional[str] = None
+    cancellation_policy: Optional[str] = None
+    contacts: Optional[list[Contact]] = None
+
