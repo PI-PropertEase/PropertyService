@@ -1,10 +1,13 @@
 from bson import ObjectId
 from fastapi import FastAPI, HTTPException, status
 from pymongo import ReturnDocument
+
+from PropertyService.messaging_operations import channel
 from PropertyService.database import collection
 from PropertyService.schemas import Property, UpdateProperty
 
 app = FastAPI()
+channel.start_consuming()
 
 
 @app.get("/properties", response_model=list[Property])

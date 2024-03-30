@@ -63,7 +63,11 @@ class Contact(BaseModel):
     phone_number: PhoneNumber
 
 
-class Property(BaseModel):
+class PropertyBase(BaseModel):
+    pass
+
+
+class Property(PropertyBase):
     # The primary key for the model, stored as a `str` on the instance.
     # This will be aliased to `_id` when sent to MongoDB,
     # but provided as `id` in the API requests and responses.
@@ -83,7 +87,7 @@ class Property(BaseModel):
     contacts: list[Contact]
 
 
-class UpdateProperty(BaseModel):
+class UpdateProperty(PropertyBase):
     title: Optional[str] = None
     address: Optional[str] = None
     description: Optional[str] = None
