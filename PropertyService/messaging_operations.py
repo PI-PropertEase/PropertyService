@@ -12,7 +12,7 @@ channel.close()  # don't use the channel from this file, we need to use an async
 
 
 async def consume(loop):
-    connection = await connect_robust(loop=loop)
+    connection = await connect_robust(host="rabbit_mq" ,loop=loop)
 
     channel = await connection.channel()
 
