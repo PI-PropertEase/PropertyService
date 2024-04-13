@@ -1,8 +1,12 @@
+import firebase_admin
 from bson import ObjectId
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Depends
+from firebase_admin import credentials
 from pymongo import ReturnDocument
 
+from ProjectUtils.DecoderService.decode_token import decode_token
 from PropertyService.database import collection
+from PropertyService.dependencies import get_user
 from PropertyService.schemas import Property, UpdateProperty
 from contextlib import asynccontextmanager
 from PropertyService.messaging_operations import channel, consume
@@ -17,7 +21,9 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(lifespan=lifespan)
+cred = credentials.Certificate(".secret.json")
+firebase_admin.initialize_app(cred)
+app = FastAPI(lifespan=lifespan, dependencies=[Depends(get_user)])
 
 @app.get( "/health", tags=["healthcheck"], summary="Perform a Health Check", response_description="Return HTTP Status Code 200 (OK)", status_code=status.HTTP_200_OK)
 def get_health():
