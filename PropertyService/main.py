@@ -19,6 +19,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+@app.get( "/health", tags=["healthcheck"], summary="Perform a Health Check", response_description="Return HTTP Status Code 200 (OK)", status_code=status.HTTP_200_OK)
+def get_health():
+    return {"status": "ok"}
+
 
 @app.get("/properties", response_model=list[Property])
 async def read_properties(user_id: int = None):
@@ -71,3 +75,4 @@ async def delete_property(prop_id: str):
         or (await collection.delete_one({"_id": ObjectId(prop_id)})).deleted_count != 1
     ):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Property {prop_id} not found")
+    
