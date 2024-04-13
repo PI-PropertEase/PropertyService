@@ -24,26 +24,24 @@ async def lifespan(app: FastAPI):
 cred = credentials.Certificate(".secret.json")
 firebase_admin.initialize_app(cred)
 app = FastAPI(lifespan=lifespan)
-healthRouter = APIRouter()
-appRouter = APIRouter(dependencies=[Depends(get_user)])
-app.include_router(healthRouter, tags=["health"])
-app.include_router(appRouter, tags=["application"])
+authRouter = APIRouter(dependencies=[Depends(get_user)])
 
 
-@healthRouter.get("/health", tags=["healthcheck"], summary="Perform a Health Check",
-               response_description="Return HTTP Status Code 200 (OK)", status_code=status.HTTP_200_OK)
+@app.get("/health", tags=["healthcheck"], summary="Perform a Health Check",
+         response_description="Return HTTP Status Code 200 (OK)", status_code=status.HTTP_200_OK)
 def get_health():
     return {"status": "ok"}
 
 
-@appRouter.get("/properties", response_model=list[Property])
+@authRouter.get("/properties", response_model=list[Property])
 async def read_properties(user_id: int = None):
     return await collection.find(
         {} if user_id is None else {"user_id": user_id}
     ).to_list(1000)
 
 
-@appRouter.post("/properties", response_model=Property, response_model_by_alias=False, status_code=status.HTTP_201_CREATED)
+@authRouter.post("/properties", response_model=Property, response_model_by_alias=False,
+                 status_code=status.HTTP_201_CREATED)
 async def create_property(prop: Property):
     property_dict = prop.model_dump(exclude={"id"})
     await collection.insert_one(property_dict)
@@ -51,14 +49,14 @@ async def create_property(prop: Property):
     return property_dict
 
 
-@appRouter.get("/properties/{prop_id}", response_model=Property, response_model_by_alias=False)
+@authRouter.get("/properties/{prop_id}", response_model=Property, response_model_by_alias=False)
 async def read_property(prop_id: str):
     if not ObjectId.is_valid(prop_id) or (result := await collection.find_one({"_id": ObjectId(prop_id)})) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Property {prop_id} not found")
     return result
 
 
-@appRouter.put("/properties/{prop_id}", response_model=Property, response_model_by_alias=False)
+@authRouter.put("/properties/{prop_id}", response_model=Property, response_model_by_alias=False)
 async def update_property(prop_id: str, prop: UpdateProperty):
     upd_prop = {k: v for k, v in prop.model_dump().items() if v is not None}
 
@@ -80,10 +78,12 @@ async def update_property(prop_id: str, prop: UpdateProperty):
     return update_result
 
 
-@appRouter.delete("/properties/{prop_id}", status_code=status.HTTP_204_NO_CONTENT)
+@authRouter.delete("/properties/{prop_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_property(prop_id: str):
     if (
             not ObjectId.is_valid(prop_id)
             or (await collection.delete_one({"_id": ObjectId(prop_id)})).deleted_count != 1
     ):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Property {prop_id} not found")
+
+app.include_router(authRouter, tags=["auth"])
