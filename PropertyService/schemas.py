@@ -1,5 +1,5 @@
 from typing import Optional, Annotated
-from pydantic import BaseModel, BeforeValidator, Field
+from pydantic import BaseModel, BeforeValidator, Field, EmailStr
 from pydantic_extra_types.phone_numbers import PhoneNumber
 from enum import Enum
 
@@ -72,7 +72,7 @@ class Property(PropertyBase):
     # This will be aliased to `_id` when sent to MongoDB,
     # but provided as `id` in the API requests and responses.
     id: Optional[PyObjectId] = Field(alias="_id", default=None)
-    user_id: int
+    user_email: EmailStr
     title: str
     address: str
     description: str
