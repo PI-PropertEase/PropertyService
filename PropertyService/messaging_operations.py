@@ -6,9 +6,9 @@ from ProjectUtils.MessagingService.queue_definitions import (
     EXCHANGE_NAME,
     USER_QUEUE_ROUTING_KEY,
     WRAPPER_TO_APP_QUEUE,
-    WRAPPER_TO_APP_ROUTING_KEY,
+    WRAPPER_TO_APP_ROUTING_KEY
 )
-from ProjectUtils.MessagingService.schemas import MessageType
+from ProjectUtils.MessagingService.schemas import MessageType, from_json
 from PropertyService.database import collection
 
 # TODO: fix this in the future
@@ -51,9 +51,9 @@ async def consume_wrappers_message(incoming_message):
     print("Received Message @ Wrappers queue")
     async with incoming_message.process():
         try:
-            decoded_message = json.loads(incoming_message.body)
-            if decoded_message.get("type") == MessageType.PROPERTY_IMPORT_RESPONSE:
-                await import_properties(decoded_message.get("body"))
+            decoded_message = from_json(incoming_message.body)
+            if decoded_message.type == MessageType.PROPERTY_IMPORT_RESPONSE:
+                await import_properties(decoded_message.body)
         except Exception as e:
             print("Error while processing message:", e)
 
