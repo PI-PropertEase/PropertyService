@@ -52,7 +52,7 @@ async def consume_wrappers_message(incoming_message):
     async with incoming_message.process():
         try:
             decoded_message = from_json(incoming_message.body)
-            if decoded_message.type == MessageType.PROPERTY_IMPORT_RESPONSE:
+            if decoded_message.message_type == MessageType.PROPERTY_IMPORT_RESPONSE:
                 await import_properties(decoded_message.body)
         except Exception as e:
             print("Error while processing message:", e)
