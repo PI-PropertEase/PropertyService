@@ -34,9 +34,9 @@ def get_health():
 
 
 @authRouter.get("/properties", response_model=list[Property])
-async def read_properties(user_id: int = None):
+async def read_properties(user_email: str = None):
     return await collection.find(
-        {} if user_id is None else {"user_id": user_id}
+        {} if user_email is None else {"user_email": user_email}
     ).to_list(1000)
 
 
