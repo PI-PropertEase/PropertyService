@@ -76,6 +76,7 @@ class Property(PropertyBase):
     title: str
     address: str
     description: str
+    price: float
     number_guests: int
     square_meters: int
     bedrooms: dict[str, Bedroom]
@@ -91,6 +92,7 @@ class UpdateProperty(PropertyBase):
     title: Optional[str] = None
     address: Optional[str] = None
     description: Optional[str] = None
+    price: Optional[float] = None
     number_guests: Optional[int] = None
     square_meters: Optional[int] = None
     bedrooms: Optional[dict[str, Bedroom]] = None
