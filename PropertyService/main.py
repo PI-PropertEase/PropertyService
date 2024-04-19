@@ -9,7 +9,7 @@ from PropertyService.database import collection
 from PropertyService.dependencies import get_user
 from PropertyService.schemas import Property, UpdateProperty
 from contextlib import asynccontextmanager
-from PropertyService.messaging_operations import channel, setup
+from PropertyService.messaging_operations import channel, setup, publish_update_property_message
 
 import asyncio
 
@@ -50,40 +50,36 @@ async def create_property(prop: Property):
 
 
 @authRouter.get("/properties/{prop_id}", response_model=Property, response_model_by_alias=False)
-async def read_property(prop_id: str):
-    if not ObjectId.is_valid(prop_id) or (result := await collection.find_one({"_id": ObjectId(prop_id)})) is None:
+async def read_property(prop_id: int):
+    if (result := await collection.find_one({"_id": prop_id})) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Property {prop_id} not found")
     return result
 
 
 @authRouter.put("/properties/{prop_id}", response_model=Property, response_model_by_alias=False)
-async def update_property(prop_id: str, prop: UpdateProperty):
+async def update_property(prop_id: int, prop: UpdateProperty):
+    print(type(prop_id))
     upd_prop = {k: v for k, v in prop.model_dump().items() if v is not None}
 
     # The update is empty, but we should still return the matching document:
     if len(upd_prop) <= 0:
         return await read_property(prop_id)
 
-    if (not ObjectId.is_valid(prop_id)
-            or (
-                    update_result := await collection.find_one_and_update(
-                        {"_id": ObjectId(prop_id)},
-                        {"$set": upd_prop},
-                        return_document=ReturnDocument.AFTER,
-                    )
-            )
-            is None
-    ):
+    update_result = await collection.find_one_and_update(
+        {"_id": prop_id},
+        {"$set": upd_prop},
+        return_document=ReturnDocument.AFTER,
+    )
+    if update_result is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Property {prop_id} not found")
+
+    await publish_update_property_message(prop_id, upd_prop)
     return update_result
 
 
 @authRouter.delete("/properties/{prop_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_property(prop_id: str):
-    if (
-            not ObjectId.is_valid(prop_id)
-            or (await collection.delete_one({"_id": ObjectId(prop_id)})).deleted_count != 1
-    ):
+async def delete_property(prop_id: int):
+    if (await collection.delete_one({"_id": prop_id})).deleted_count != 1:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Property {prop_id} not found")
 
 app.include_router(authRouter, tags=["auth"])
