@@ -1,28 +1,38 @@
 import json
-from aio_pika import connect_robust, ExchangeType
+from aio_pika import connect_robust, ExchangeType, Message
 from ProjectUtils.MessagingService.queue_definitions import (
     channel,
     USER_QUEUE_NAME,
     EXCHANGE_NAME,
     USER_QUEUE_ROUTING_KEY,
     WRAPPER_TO_APP_QUEUE,
-    WRAPPER_TO_APP_ROUTING_KEY
+    WRAPPER_TO_APP_ROUTING_KEY,
+    WRAPPER_ZOOKING_ROUTING_KEY
 )
-from ProjectUtils.MessagingService.schemas import MessageType, from_json
 from PropertyService.database import collection
+
+from ProjectUtils.MessagingService.schemas import to_json_aoi_bytes, MessageFactory, MessageType, from_json, Service
+from ProjectUtils.MessagingService.queue_definitions import routing_key_by_service
 
 # TODO: fix this in the future
 channel.close()  # don't use the channel from this file, we need to use an async channel
 
+async_exchange = None
 
-async def consume(loop):
+async def setup(loop):
     connection = await connect_robust(host="rabbit_mq" ,loop=loop)
 
-    channel = await connection.channel()
+    async_channel = await connection.channel()
 
-    users_queue = await channel.declare_queue(USER_QUEUE_NAME, durable=True)
+    global async_exchange
 
-    wrappers_queue = await channel.declare_queue(WRAPPER_TO_APP_QUEUE, durable=True)
+    async_exchange = await async_channel.declare_exchange(
+        name=EXCHANGE_NAME, type=ExchangeType.TOPIC, durable=True
+    )
+
+    users_queue = await async_channel.declare_queue(USER_QUEUE_NAME, durable=True)
+
+    wrappers_queue = await async_channel.declare_queue(WRAPPER_TO_APP_QUEUE, durable=True)
 
     await users_queue.bind(exchange=EXCHANGE_NAME, routing_key=USER_QUEUE_ROUTING_KEY)
 
@@ -53,17 +63,24 @@ async def consume_wrappers_message(incoming_message):
         try:
             decoded_message = from_json(incoming_message.body)
             if decoded_message.message_type == MessageType.PROPERTY_IMPORT_RESPONSE:
-                await import_properties(decoded_message.body)
+                body = decoded_message.body
+                await import_properties(body["service"], body["properties"])
         except Exception as e:
             print("Error while processing message:", e)
 
 
-async def import_properties(properties):
+async def import_properties(service: Service, properties):
+    global async_exchange
     print("IMPORT_PROPERTIES_RESPONSE - importing properties...")
     for prop in properties:
-        num_prop_same_address = await collection.count_documents(
+        property_same_address = await collection.find_one(
             {"address": prop.get("address"), "user_email": prop.get("user_email")}
         )
-        if num_prop_same_address > 0:
-            continue  # don't import properties that already exist for this user
-        await collection.insert_one(prop)
+        if property_same_address is not None:
+            if prop["_id"] != property_same_address["_id"]:
+                await async_exchange.publish(
+                    routing_key=routing_key_by_service[service],
+                    message=to_json_aoi_bytes(MessageFactory.create_duplicate_import_property_message(prop, property_same_address))
+                )
+        else:
+            await collection.insert_one(prop)

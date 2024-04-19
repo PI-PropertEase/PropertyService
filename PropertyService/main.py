@@ -9,7 +9,7 @@ from PropertyService.database import collection
 from PropertyService.dependencies import get_user
 from PropertyService.schemas import Property, UpdateProperty
 from contextlib import asynccontextmanager
-from PropertyService.messaging_operations import channel, consume
+from PropertyService.messaging_operations import channel, setup
 
 import asyncio
 
@@ -17,7 +17,7 @@ import asyncio
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     loop = asyncio.get_event_loop()
-    asyncio.ensure_future(consume(loop))
+    asyncio.ensure_future(setup(loop))
     yield
 
 
