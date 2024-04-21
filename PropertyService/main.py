@@ -1,5 +1,4 @@
 import firebase_admin
-from bson import ObjectId
 from fastapi import FastAPI, HTTPException, status, Depends, APIRouter
 from firebase_admin import credentials
 from pymongo import ReturnDocument
@@ -58,7 +57,6 @@ async def read_property(prop_id: int):
 
 @authRouter.put("/properties/{prop_id}", response_model=Property, response_model_by_alias=False)
 async def update_property(prop_id: int, prop: UpdateProperty):
-    print(type(prop_id))
     upd_prop = {k: v for k, v in prop.model_dump().items() if v is not None}
 
     # The update is empty, but we should still return the matching document:
