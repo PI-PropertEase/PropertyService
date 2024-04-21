@@ -10,9 +10,10 @@ from ProjectUtils.MessagingService.queue_definitions import (
     WRAPPER_ZOOKING_ROUTING_KEY
 )
 from PropertyService.database import collection
+from PropertyService.schemas import UpdateProperty
 
 from ProjectUtils.MessagingService.schemas import to_json_aoi_bytes, MessageFactory, MessageType, from_json, Service
-from ProjectUtils.MessagingService.queue_definitions import routing_key_by_service
+from ProjectUtils.MessagingService.queue_definitions import routing_key_by_service, WRAPPER_BROADCAST_ROUTING_KEY
 
 # TODO: fix this in the future
 channel.close()  # don't use the channel from this file, we need to use an async channel
@@ -84,3 +85,15 @@ async def import_properties(service: Service, properties):
                 )
         else:
             await collection.insert_one(prop)
+
+
+async def publish_update_property_message(prop_id: int, prop: dict):
+    global async_exchange
+    print(f"UPDATING PROPERTY {prop}")
+    await async_exchange.publish(
+        routing_key=WRAPPER_BROADCAST_ROUTING_KEY,
+        message=to_json_aoi_bytes(MessageFactory.create_property_update_message(prop_id, prop))
+    )
+
+    print("Craete Property Update Message", MessageFactory.create_property_update_message(prop_id, prop).__dict__)
+
