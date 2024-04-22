@@ -6,7 +6,7 @@ from pymongo import ReturnDocument
 from ProjectUtils.DecoderService.decode_token import decode_token
 from PropertyService.database import collection
 from PropertyService.dependencies import get_user
-from PropertyService.schemas import Property, UpdateProperty
+from PropertyService.schemas import Property, UpdateProperty, Amenity, BathroomFixture, BedType
 from contextlib import asynccontextmanager
 from PropertyService.messaging_operations import channel, setup, publish_update_property_message
 
@@ -79,5 +79,21 @@ async def update_property(prop_id: int, prop: UpdateProperty):
 async def delete_property(prop_id: int):
     if (await collection.delete_one({"_id": prop_id})).deleted_count != 1:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Property {prop_id} not found")
+
+    
+@authRouter.get("/amenities", response_model=list[Amenity])
+async def get_amenities():
+    return [a.value for a in Amenity]
+    
+
+@authRouter.get("/bathroom_fixtures", response_model=list[BathroomFixture])
+async def get_bathroom_fixtures():
+    return [bf.value for bf in BathroomFixture]
+
+
+@authRouter.get("/bed_types", response_model=list[BedType])
+async def get_bed_types():
+    return [b.value for b in BedType]
+
 
 app.include_router(authRouter, tags=["auth"])
