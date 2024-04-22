@@ -81,17 +81,17 @@ async def delete_property(prop_id: int):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Property {prop_id} not found")
 
     
-@authRouter.get("/amenities", response_model=list[Amenity], response_model_by_alias=False)
+@authRouter.get("/amenities", response_model=list[Amenity])
 async def get_amenities():
     return [a.value for a in Amenity]
     
 
-@authRouter.get("/bathroom_fixtures", response_model=list[BathroomFixture], response_model_by_alias=False)
+@authRouter.get("/bathroom_fixtures", response_model=list[BathroomFixture])
 async def get_bathroom_fixtures():
     return [bf.value for bf in BathroomFixture]
 
 
-@authRouter.get("/bed_types", response_model=list[BedType], response_model_by_alias=False)
+@authRouter.get("/bed_types", response_model=list[BedType])
 async def get_bed_types():
     return [b.value for b in BedType]
 
