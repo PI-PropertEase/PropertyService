@@ -77,14 +77,15 @@ async def import_properties(service: Service, properties):
         property_same_address = await collection.find_one(
             {"address": prop.get("address"), "user_email": prop.get("user_email")}
         )
-        if property_same_address is not None:
-            if prop["_id"] != property_same_address["_id"]:
-                await async_exchange.publish(
-                    routing_key=routing_key_by_service[service],
-                    message=to_json_aoi_bytes(MessageFactory.create_duplicate_import_property_message(prop, property_same_address))
-                )
-        else:
+        if property_same_address is None:
             await collection.insert_one(prop)
+        await async_exchange.publish(
+            routing_key=routing_key_by_service[service],
+            message=to_json_aoi_bytes(MessageFactory.create_reservation_import_initial_request_message(
+                prop["_id"],
+                property_same_address["_id"] if prop["_id"] != property_same_address["_id"] else None
+            ))
+        )
 
 
 async def publish_update_property_message(prop_id: int, prop: dict):
