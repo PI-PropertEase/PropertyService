@@ -86,6 +86,7 @@ class Property(PropertyBase):
     additional_info: str
     cancellation_policy: str
     contacts: list[Contact]
+    recommended_price: Optional[float] = None
 
 
 class UpdateProperty(PropertyBase):
@@ -102,4 +103,14 @@ class UpdateProperty(PropertyBase):
     additional_info: Optional[str] = None
     cancellation_policy: Optional[str] = None
     contacts: Optional[list[Contact]] = None
+
+class PropertyForAnalytics(BaseModel):
+    id: str
+    latitude: float
+    longitude: float
+    bathrooms: int
+    bedrooms: int
+    beds: int
+    number_of_guests: int
+    num_amenities: int
 
