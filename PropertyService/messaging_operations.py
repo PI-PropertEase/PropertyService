@@ -12,7 +12,7 @@ from ProjectUtils.MessagingService.queue_definitions import (
     ANALYTICS_TO_PROPERTY_QUEUE_NAME,
 )
 from PropertyService.database import collection
-from PropertyService.schemas import UpdateProperty
+from PropertyService.schemas import Property
 
 from ProjectUtils.MessagingService.schemas import to_json_aoi_bytes, MessageFactory, MessageType, from_json, Service
 from ProjectUtils.MessagingService.queue_definitions import routing_key_by_service, WRAPPER_BROADCAST_ROUTING_KEY
@@ -81,18 +81,30 @@ async def consume_wrappers_message(incoming_message):
 async def import_properties(service: Service, properties):
     global async_exchange
     print("IMPORT_PROPERTIES_RESPONSE - importing properties...")
-    for prop in properties:
-        property_same_address = await collection.find_one(
-            {"address": prop.get("address"), "user_email": prop.get("user_email")}
+    if len(properties) > 0:
+        user_email = properties[0]["user_email"]
+        old_new_id_map = {}
+
+        for prop in properties:
+            serialized_prop = Property.model_validate(prop)
+            property_same_address = await collection.find_one(
+                {"address": serialized_prop.address, "user_email": user_email}
+            )
+            if property_same_address is None:
+                await collection.insert_one(serialized_prop.model_dump(by_alias=True))
+            else:
+                old_id = prop["_id"]
+                new_id = property_same_address["_id"]
+                if old_id != new_id:
+                    old_new_id_map[old_id] = new_id
+
+        await async_exchange.publish(
+            routing_key=routing_key_by_service[service],
+            message=to_json_aoi_bytes(MessageFactory.create_reservation_import_initial_request_message(
+                user_email,
+                old_new_id_map
+            ))
         )
-        if property_same_address is not None:
-            if prop["_id"] != property_same_address["_id"]:
-                await async_exchange.publish(
-                    routing_key=routing_key_by_service[service],
-                    message=to_json_aoi_bytes(MessageFactory.create_duplicate_import_property_message(prop, property_same_address))
-                )
-        else:
-            await collection.insert_one(prop)
 
 
 async def publish_update_property_message(prop_id: int, prop: dict):
