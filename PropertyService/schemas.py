@@ -71,7 +71,7 @@ class Property(PropertyBase):
     # The primary key for the model, stored as a `str` on the instance.
     # This will be aliased to `_id` when sent to MongoDB,
     # but provided as `id` in the API requests and responses.
-    id: Optional[PyObjectId] = Field(alias="_id", default=None)
+    id: Optional[int] = Field(alias="_id", default=None)
     user_email: EmailStr
     title: str
     address: str
@@ -82,6 +82,10 @@ class Property(PropertyBase):
     bedrooms: dict[str, Bedroom]
     bathrooms: dict[str, Bathroom]
     amenities: list[Amenity]
+    # if False, price updates will be set to the value that was updated
+    # if True, price updates will be set a bit higher to compensate for commission, so property owner 
+    # gets the value he set whenever any reservation is made 
+    after_commission: bool = False
     house_rules: HouseRules
     additional_info: str
     cancellation_policy: str
@@ -98,6 +102,7 @@ class UpdateProperty(PropertyBase):
     bedrooms: Optional[dict[str, Bedroom]] = None
     bathrooms: Optional[dict[str, Bathroom]] = None
     amenities: Optional[list[Amenity]] = None
+    after_commission: Optional[bool] = None
     house_rules: Optional[HouseRules] = None
     additional_info: Optional[str] = None
     cancellation_policy: Optional[str] = None
