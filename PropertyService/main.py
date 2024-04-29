@@ -13,17 +13,25 @@ from PropertyService.messaging_operations import setup, publish_update_property_
 import asyncio
 
 import logging
+import random
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from datetime import time
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler())
 
+scheduler = AsyncIOScheduler()
+scheduler.start()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     loop = asyncio.get_event_loop()
     await asyncio.ensure_future(setup(loop))
     asyncio.ensure_future(price_recommendation())
+    daily_time = time(hour=00, minute=00) # Executa todos os dias à meia noite (Está em UTC por isso executa à 1 da manha)
+    scheduler.add_job(price_recommendation, 'cron', hour=daily_time.hour, minute=daily_time.minute)
     yield
 
 cred = credentials.Certificate(".secret.json")
@@ -104,9 +112,27 @@ async def get_bed_types():
 async def price_recommendation():
     properties = await collection.find().to_list(1000)
     logger.info("Sending price recommendation request")
-    logger.info(properties)
-    await publish_get_recommended_price(properties)
-    logger.info("Price recommendation request sent")
-    return {"message": "Price recommendation request sent"}
+    propertiesAnalytics = []
+    if properties != []: 
+        for prop in properties:
+            bedrooms = prop["bedrooms"]
+            num_beds = 0
+            for key, value in bedrooms.items():
+                num_beds += value["beds"][0]["number_beds"]
+                
+            propertyAnalytics = PropertyForAnalytics(
+                id = prop["_id"].__str__(),
+                latitude= random.uniform(-90, 90),
+                longitude= random.uniform(-180, 180),
+                bathrooms = len(prop["bathrooms"].keys()),
+                bedrooms = len(prop["bedrooms"].keys()),
+                beds= num_beds,
+                number_of_guests = prop["number_guests"],
+                num_amenities = len(prop["amenities"]))
+            
+            propertiesAnalytics.append(propertyAnalytics)
+        
+        await publish_get_recommended_price(propertiesAnalytics)
+        return {"message": "Price recommendation request sent"}
 
 app.include_router(authRouter, tags=["auth"])

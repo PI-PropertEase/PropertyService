@@ -10,114 +10,18 @@ from ProjectUtils.MessagingService.queue_definitions import (
     WRAPPER_ZOOKING_ROUTING_KEY,
     PROPERTY_TO_ANALYTICS_QUEUE_ROUTING_KEY,
     ANALYTICS_TO_PROPERTY_QUEUE_NAME,
-    analytics_to_property,
 )
 from PropertyService.database import collection
 from PropertyService.schemas import UpdateProperty
 
-from ProjectUtils.MessagingService.schemas import to_json_aoi_bytes, MessageFactory, MessageType, from_json, Service, to_json
+from ProjectUtils.MessagingService.schemas import to_json_aoi_bytes, MessageFactory, MessageType, from_json, Service
 from ProjectUtils.MessagingService.queue_definitions import routing_key_by_service, WRAPPER_BROADCAST_ROUTING_KEY
 
-import time
-from pydantic import BaseModel
 
 # TODO: fix this in the future
 channel.close()  # don't use the channel from this file, we need to use an async channel
 
 async_exchange = None
-
-class PropertyForAnalytics(BaseModel):
-    id: str
-    latitude: float
-    longitude: float
-    bathrooms: int
-    bedrooms: int
-    beds: int
-    number_of_guests: int
-    num_amenities: int
-
-properties = [
-    PropertyForAnalytics(
-        id="661a7e5ab7bd0512178cf014",
-        latitude=40.639337,
-        longitude=-8.65099,
-        bathrooms=2,
-        bedrooms=3,
-        beds=4,
-        number_of_guests=4,
-        num_amenities=4
-    ),
-    PropertyForAnalytics(
-        id="1f994177dc45954c6148086",
-        latitude=40.649127,
-        longitude=-8.65455,
-        bathrooms=1,
-        bedrooms=1,
-        beds=1,
-        number_of_guests=2,
-        num_amenities=3
-    ),
-    PropertyForAnalytics(
-        id="60a283db136301428a0ae06",
-        latitude=40.63892,
-        longitude=-8.65459,
-        bathrooms=1,
-        bedrooms=1,
-        beds=2,
-        number_of_guests=2,
-        num_amenities=2
-    ),
-    PropertyForAnalytics(
-        id="1ac9af963e829344c53956b",
-        latitude=40.64131,
-        longitude=-8.65431,
-        bathrooms=2,
-        bedrooms=2,
-        beds=3,
-        number_of_guests=4,
-        num_amenities=5
-    ),
-    PropertyForAnalytics(
-        id="2f224177dc45954c6148086",
-        latitude=40.64243,
-        longitude=-8.64571,
-        bathrooms=2,
-        bedrooms=2,
-        beds=3,
-        number_of_guests=4,
-        num_amenities=6
-    ),
-    PropertyForAnalytics(
-        id="1e8b214c28d15241902904a",
-        latitude=40.63889,
-        longitude=-8.64554,
-        bathrooms=2,
-        bedrooms=3,
-        beds=5,
-        number_of_guests=6,
-        num_amenities=7
-    ),
-    PropertyForAnalytics(
-        id="f91622341c0651489309cfa",
-        latitude=40.63848,
-        longitude=-8.65434,
-        bathrooms=3,
-        bedrooms=3,
-        beds=6,
-        number_of_guests=6,
-        num_amenities=8
-    ),
-    PropertyForAnalytics(
-        id="87e1dfd41f80d24d1e1845d",
-        latitude=40.63956,
-        longitude=-8.65434,
-        bathrooms=3,
-        bedrooms=4,
-        beds=3,
-        number_of_guests=4,
-        num_amenities=3
-    ),
-]
 
 
 async def setup(loop):
@@ -218,7 +122,11 @@ async def consume_price_recomendation(incoming_message):
         try:
             decoded_message = from_json(incoming_message.body)
             if decoded_message.message_type == MessageType.RECOMMENDED_PRICE_RESPONSE:
-                print("Recommended prices for each property: " + str(decoded_message.body))
+                for prop in decoded_message.body:
+                    await collection.find_one_and_update(
+                        {"_id": int(prop)},
+                        {"$set": {"recommended_price": decoded_message.body[prop]}}
+                    )
+            print("Price recommendation response processed")
         except Exception as e:
-            print("Error while processing message:", e) 
-
+            print("Error while processing message:", e)
