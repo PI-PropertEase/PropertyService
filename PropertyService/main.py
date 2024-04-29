@@ -70,6 +70,11 @@ async def update_property(prop_id: int, prop: UpdateProperty):
     )
     if update_result is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Property {prop_id} not found")
+    
+    upd_attributes = upd_prop.keys()
+    # make sure "after_commission" is always included in the message sent to wrappers
+    if "price" in upd_attributes and "after_commission" not in upd_attributes:
+        upd_prop["after_commission"] = update_result.get("after_commission")
 
     await publish_update_property_message(prop_id, upd_prop)
     return update_result

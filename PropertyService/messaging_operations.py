@@ -10,7 +10,7 @@ from ProjectUtils.MessagingService.queue_definitions import (
     WRAPPER_ZOOKING_ROUTING_KEY
 )
 from PropertyService.database import collection
-from PropertyService.schemas import UpdateProperty
+from PropertyService.schemas import Property
 
 from ProjectUtils.MessagingService.schemas import to_json_aoi_bytes, MessageFactory, MessageType, from_json, Service
 from ProjectUtils.MessagingService.queue_definitions import routing_key_by_service, WRAPPER_BROADCAST_ROUTING_KEY
@@ -78,11 +78,12 @@ async def import_properties(service: Service, properties):
         old_new_id_map = {}
 
         for prop in properties:
+            serialized_prop = Property.model_validate(prop)
             property_same_address = await collection.find_one(
-                {"address": prop.get("address"), "user_email": user_email}
+                {"address": serialized_prop.address, "user_email": user_email}
             )
             if property_same_address is None:
-                await collection.insert_one(prop)
+                await collection.insert_one(serialized_prop.model_dump(by_alias=True))
             else:
                 old_id = prop["_id"]
                 new_id = property_same_address["_id"]
