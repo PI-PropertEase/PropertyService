@@ -6,19 +6,33 @@ from pymongo import ReturnDocument
 from ProjectUtils.DecoderService.decode_token import decode_token
 from PropertyService.database import collection
 from PropertyService.dependencies import get_user
-from PropertyService.schemas import Property, UpdateProperty, Amenity, BathroomFixture, BedType
+from PropertyService.schemas import Property, UpdateProperty, Amenity, BathroomFixture, BedType, PropertyForAnalytics
 from contextlib import asynccontextmanager
-from PropertyService.messaging_operations import channel, setup, publish_update_property_message
+from PropertyService.messaging_operations import setup, publish_update_property_message, publish_get_recommended_price
 
 import asyncio
 
+import logging
+import random
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from datetime import time
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler())
+
+scheduler = AsyncIOScheduler()
+scheduler.start()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     loop = asyncio.get_event_loop()
-    asyncio.ensure_future(setup(loop))
+    await asyncio.ensure_future(setup(loop))
+    asyncio.ensure_future(price_recommendation())
+    daily_time = time(hour=00, minute=00) # Executa todos os dias à meia noite (Está em UTC por isso executa à 1 da manha)
+    scheduler.add_job(price_recommendation, 'cron', hour=daily_time.hour, minute=daily_time.minute)
     yield
-
 
 cred = credentials.Certificate(".secret.json")
 firebase_admin.initialize_app(cred)
@@ -100,5 +114,30 @@ async def get_bathroom_fixtures():
 async def get_bed_types():
     return [b.value for b in BedType]
 
+async def price_recommendation():
+    properties = await collection.find().to_list(1000)
+    logger.info("Sending price recommendation request")
+    propertiesAnalytics = []
+    if properties != []: 
+        for prop in properties:
+            bedrooms = prop["bedrooms"]
+            num_beds = 0
+            for key, value in bedrooms.items():
+                num_beds += value["beds"][0]["number_beds"]
+                
+            propertyAnalytics = PropertyForAnalytics(
+                id = prop["_id"].__str__(),
+                latitude= random.uniform(-90, 90),
+                longitude= random.uniform(-180, 180),
+                bathrooms = len(prop["bathrooms"].keys()),
+                bedrooms = len(prop["bedrooms"].keys()),
+                beds= num_beds,
+                number_of_guests = prop["number_guests"],
+                num_amenities = len(prop["amenities"]))
+            
+            propertiesAnalytics.append(propertyAnalytics)
+        
+        await publish_get_recommended_price(propertiesAnalytics)
+        return {"message": "Price recommendation request sent"}
 
 app.include_router(authRouter, tags=["auth"])
