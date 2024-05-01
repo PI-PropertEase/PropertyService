@@ -76,6 +76,9 @@ async def update_property(prop_id: int, prop: UpdateProperty):
     # The update is empty, but we should still return the matching document:
     if len(upd_prop) <= 0:
         return await read_property(prop_id)
+    
+    if "recommended_price" in upd_prop and "update_price_automatically" in upd_prop and upd_prop.get("update_price_automatically") is True and upd_prop.get("price") != upd_prop.get("recommended_price"):
+        upd_prop["price"] = upd_prop.get("recommended_price")
 
     update_result = await collection.find_one_and_update(
         {"_id": prop_id},

@@ -135,10 +135,18 @@ async def consume_price_recomendation(incoming_message):
             decoded_message = from_json(incoming_message.body)
             if decoded_message.message_type == MessageType.RECOMMENDED_PRICE_RESPONSE:
                 for prop in decoded_message.body:
-                    await collection.find_one_and_update(
-                        {"_id": int(prop)},
-                        {"$set": {"recommended_price": decoded_message.body[prop]}}
-                    )
+                    property = await collection.find_one({"_id": int(prop)})
+                    if "update_price_automatically" in property and property.get("update_price_automatically") is True and property.get("price") != decoded_message.body[prop]:
+                        await collection.find_one_and_update(
+                            {"_id": int(prop)},
+                            {"$set": {"recommended_price": decoded_message.body[prop], "price": decoded_message.body[prop]}}
+                        )
+                    else:
+                        await collection.find_one_and_update(
+                            {"_id": int(prop)},
+                            {"$set": {"recommended_price": decoded_message.body[prop]}}
+                        )
+                    
             print("Price recommendation response processed")
         except Exception as e:
             print("Error while processing message:", e)
