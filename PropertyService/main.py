@@ -73,6 +73,7 @@ async def read_property(prop_id: int):
 async def update_property(prop_id: int, prop: UpdateProperty):
     upd_prop = {k: v for k, v in prop.model_dump().items() if v is not None}
 
+
     # The update is empty, but we should still return the matching document:
     if len(upd_prop) <= 0:
         return await read_property(prop_id)
@@ -93,7 +94,13 @@ async def update_property(prop_id: int, prop: UpdateProperty):
     if "price" in upd_attributes and "after_commission" not in upd_attributes:
         upd_prop["after_commission"] = update_result.get("after_commission")
 
+
     await publish_update_property_message(prop_id, upd_prop)
+
+    await price_recommendation()
+
+    update_result = await collection.find_one({"_id": prop_id})
+    
     return update_result
 
 
