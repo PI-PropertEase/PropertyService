@@ -141,6 +141,7 @@ async def consume_price_recomendation(incoming_message):
                             {"_id": int(prop)},
                             {"$set": {"recommended_price": decoded_message.body[prop], "price": decoded_message.body[prop]}}
                         )
+                        await publish_update_property_message(int(prop), {"price": decoded_message.body[prop]})
                     else:
                         await collection.find_one_and_update(
                             {"_id": int(prop)},
