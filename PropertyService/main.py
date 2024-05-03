@@ -97,10 +97,6 @@ async def update_property(prop_id: int, prop: UpdateProperty):
 
     await publish_update_property_message(prop_id, upd_prop)
 
-    await price_recommendation()
-
-    update_result = await collection.find_one({"_id": prop_id})
-    
     return update_result
 
 
