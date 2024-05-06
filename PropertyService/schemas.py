@@ -91,6 +91,7 @@ class Property(PropertyBase):
     cancellation_policy: str
     contacts: list[Contact]
     recommended_price: Optional[float] = None
+    update_price_automatically: Optional[bool] = False
 
 
 class UpdateProperty(PropertyBase):
@@ -108,6 +109,7 @@ class UpdateProperty(PropertyBase):
     additional_info: Optional[str] = None
     cancellation_policy: Optional[str] = None
     contacts: Optional[list[Contact]] = None
+    update_price_automatically: Optional[bool] = None
 
 class PropertyForAnalytics(BaseModel):
     id: str
