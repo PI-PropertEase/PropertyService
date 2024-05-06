@@ -1,0 +1,3 @@
+[submodule "ProjectUtils"]
+	path = ProjectUtils
+	url = git@github.com:PI-PropertEase/ProjectUtils.git
