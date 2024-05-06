@@ -60,7 +60,7 @@ async def consume_user_message(incoming_message):
     print("Received Message @ Users queue")
     async with incoming_message.process():
         try:
-            decoded_message = json.loads(incoming_message)
+            decoded_message = from_json(incoming_message.body)
         except Exception as e:
             print("Error while processing message:", e)
         print(incoming_message.body)
