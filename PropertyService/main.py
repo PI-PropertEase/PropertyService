@@ -8,7 +8,7 @@ from PropertyService.database import collection
 from PropertyService.dependencies import get_user
 from PropertyService.schemas import Property, UpdateProperty, Amenity, BathroomFixture, BedType, PropertyForAnalytics
 from contextlib import asynccontextmanager
-from PropertyService.messaging_operations import setup, publish_update_property_message, publish_get_recommended_price
+from PropertyService.messaging_operations import setup, publish_update_property_message, publish_get_recommended_price, publish_send_data_to_analytics
 
 import asyncio
 
@@ -30,8 +30,10 @@ async def lifespan(app: FastAPI):
     loop = asyncio.get_event_loop()
     await asyncio.ensure_future(setup(loop))
     asyncio.ensure_future(price_recommendation())
-    daily_time = time(hour=00, minute=00) # Executa todos os dias à meia noite (Está em UTC por isso executa à 1 da manha)
+    daily_time = time(hour=00, minute=00) 
     scheduler.add_job(price_recommendation, 'cron', hour=daily_time.hour, minute=daily_time.minute)
+    #scheduler.add_job(send_data_to_analytics, 'interval', minutes=1) #test
+    scheduler.add_job(send_data_to_analytics, 'interval', hour=1)
     yield
 
 cred = credentials.Certificate(".secret.json")
@@ -59,6 +61,7 @@ async def create_property(prop: Property):
     property_dict = prop.model_dump(exclude={"id"})
     await collection.insert_one(property_dict)
     # property_dict automatically gets id after insertion
+
     return property_dict
 
 
@@ -145,5 +148,32 @@ async def price_recommendation():
         
         await publish_get_recommended_price(propertiesAnalytics)
         return {"message": "Price recommendation request sent"}
+    
+async def send_data_to_analytics():
+    properties = await collection.find().to_list(1000)
+    logger.info("Sending data to analytics")
+    propertiesAnalytics = []
+    if properties != []: 
+        for prop in properties:
+            bedrooms = prop["bedrooms"]
+            num_beds = 0
+            for key, value in bedrooms.items():
+                num_beds += value["beds"][0]["number_beds"]
+            
+            propertyAnalytics = {
+                "id": prop["_id"].__str__(),
+                "bathrooms": len(prop["bathrooms"].keys()),
+                "bedrooms": len(prop["bedrooms"].keys()),
+                "beds": num_beds,
+                "number_of_guests": prop["number_guests"],
+                "num_amenities": len(prop["amenities"]),
+                "price": prop["price"]
+            }
+            
+            propertiesAnalytics.append(propertyAnalytics)
+        
+        await publish_send_data_to_analytics(propertiesAnalytics)
+
+        return {"message": "Data sent to analytics"}
 
 app.include_router(authRouter, tags=["auth"])
