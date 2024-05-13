@@ -10,6 +10,7 @@ from ProjectUtils.MessagingService.queue_definitions import (
     WRAPPER_ZOOKING_ROUTING_KEY,
     PROPERTY_TO_ANALYTICS_QUEUE_ROUTING_KEY,
     ANALYTICS_TO_PROPERTY_QUEUE_NAME,
+    PROPERTY_TO_ANALYTICS_DATA_ROUTING_KEY
 )
 from PropertyService.database import collection
 from PropertyService.schemas import Property
@@ -151,3 +152,13 @@ async def consume_price_recomendation(incoming_message):
             print("Price recommendation response processed")
         except Exception as e:
             print("Error while processing message:", e)
+
+async def publish_send_data_to_analytics(properties: list):
+    global async_exchange
+    print("Sending data to analytics")
+    message = MessageFactory.create_send_data_to_analytics_message(properties)
+    await async_exchange.publish(
+        routing_key=PROPERTY_TO_ANALYTICS_DATA_ROUTING_KEY,
+        message=to_json_aoi_bytes(message)
+    )
+    print("Data sent to analytics")
