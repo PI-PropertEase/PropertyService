@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
     daily_time = time(hour=00, minute=00) 
     scheduler.add_job(price_recommendation, 'cron', hour=daily_time.hour, minute=daily_time.minute)
     #scheduler.add_job(send_data_to_analytics, 'interval', minutes=1) #test
-    scheduler.add_job(send_data_to_analytics, 'interval', hour=1)
+    scheduler.add_job(send_data_to_analytics, 'interval', hours=1)
     yield
 
 cred = credentials.Certificate(".secret.json")
