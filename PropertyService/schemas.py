@@ -75,6 +75,7 @@ class Property(PropertyBase):
     user_email: EmailStr
     title: str
     address: str
+    location: str
     description: str
     price: float
     number_guests: int
@@ -97,6 +98,7 @@ class Property(PropertyBase):
 class UpdateProperty(PropertyBase):
     title: Optional[str] = None
     address: Optional[str] = None
+    location: Optional[str] = None
     description: Optional[str] = None
     price: Optional[float] = None
     number_guests: Optional[int] = None
