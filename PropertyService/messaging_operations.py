@@ -102,7 +102,7 @@ async def import_properties(service: str, properties):
                     old_new_id_map[old_id] = new_id
                 # set new services list in property schema
                 new_service = Service(service)
-                if not new_service in property_same_address["services"]:
+                if new_service not in property_same_address["services"]:
                     property_same_address["services"].append(Service(service))
                     await collection.update_one(
                         {"_id": new_id},
