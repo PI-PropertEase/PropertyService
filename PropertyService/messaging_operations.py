@@ -13,9 +13,9 @@ from ProjectUtils.MessagingService.queue_definitions import (
     PROPERTY_TO_ANALYTICS_DATA_ROUTING_KEY
 )
 from PropertyService.database import collection
-from PropertyService.schemas import Property
+from PropertyService.schemas import Property, Service
 
-from ProjectUtils.MessagingService.schemas import to_json_aoi_bytes, MessageFactory, MessageType, from_json, Service
+from ProjectUtils.MessagingService.schemas import to_json_aoi_bytes, MessageFactory, MessageType, from_json
 from ProjectUtils.MessagingService.queue_definitions import routing_key_by_service, WRAPPER_BROADCAST_ROUTING_KEY
 
 
@@ -76,10 +76,10 @@ async def consume_wrappers_message(incoming_message):
                 body = decoded_message.body
                 await import_properties(body["service"], body["properties"])
         except Exception as e:
-            print("Error while processing message:", e)
+            print("Error while processing message in Wrappers queue:", e)
 
 
-async def import_properties(service: Service, properties):
+async def import_properties(service: str, properties):
     global async_exchange
     print("IMPORT_PROPERTIES_RESPONSE - importing properties...")
     if len(properties) > 0:
@@ -87,17 +87,27 @@ async def import_properties(service: Service, properties):
         old_new_id_map = {}
 
         for prop in properties:
-            serialized_prop = Property.model_validate(prop)
             property_same_address = await collection.find_one(
-                {"address": serialized_prop.address, "user_email": user_email}
+                {"address": prop.get("address"), "user_email": user_email}
             )
             if property_same_address is None:
+                prop["services"] = [Service(service)]
+                serialized_prop = Property.model_validate(prop)
                 await collection.insert_one(serialized_prop.model_dump(by_alias=True))
-            else:
+            else: # duplicate property
                 old_id = prop["_id"]
                 new_id = property_same_address["_id"]
+                # set old_new_id_map to notify wrappers of duplicate property
                 if old_id != new_id:
                     old_new_id_map[old_id] = new_id
+                # set new services list in property schema
+                new_service = Service(service)
+                if new_service not in property_same_address["services"]:
+                    property_same_address["services"].append(Service(service))
+                    await collection.update_one(
+                        {"_id": new_id},
+                        {"$set": {"services": property_same_address["services"]}}
+                    )
 
         await async_exchange.publish(
             routing_key=routing_key_by_service[service],
