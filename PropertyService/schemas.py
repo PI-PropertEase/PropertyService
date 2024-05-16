@@ -9,6 +9,11 @@ PyObjectId = Annotated[str, BeforeValidator(str)]
 TimeHourMinute = Annotated[str, Field(pattern=r'^(2[0-3]|[01][0-9]):([0-5][0-9])$')]
 PhoneNumber.phone_format = 'E164'  # 'INTERNATIONAL'
 
+class Service(str, Enum):
+    ZOOKING = "zooking"
+    CLICKANDGO = "clickandgo"
+    EARTHSTAYIN = "earthstayin"
+
 
 class TimeSlot(BaseModel):
     begin_time: TimeHourMinute
@@ -91,6 +96,7 @@ class Property(PropertyBase):
     additional_info: str
     cancellation_policy: str
     contacts: list[Contact]
+    services: list[Service]
     recommended_price: Optional[float] = None
     update_price_automatically: Optional[bool] = False
 
@@ -122,4 +128,3 @@ class PropertyForAnalytics(BaseModel):
     beds: int
     number_of_guests: int
     num_amenities: int
-
