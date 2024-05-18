@@ -49,6 +49,7 @@ def get_health():
 
 
 @authRouter.get("/properties", response_model=list[Property])
+# TODO: change this (authentication analytics)
 async def read_properties(user_email: str = None):
     return await collection.find(
         {} if user_email is None else {"user_email": user_email}
@@ -57,6 +58,7 @@ async def read_properties(user_email: str = None):
 
 @authRouter.post("/properties", response_model=Property, response_model_by_alias=False,
                  status_code=status.HTTP_201_CREATED)
+# TODO: remove this
 async def create_property(prop: Property):
     property_dict = prop.model_dump(exclude={"id"})
     await collection.insert_one(property_dict)
@@ -66,6 +68,7 @@ async def create_property(prop: Property):
 
 
 @authRouter.get("/properties/{prop_id}", response_model=Property, response_model_by_alias=False)
+# TODO: security??
 async def read_property(prop_id: int):
     if (result := await collection.find_one({"_id": prop_id})) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Property {prop_id} not found")
@@ -104,6 +107,7 @@ async def update_property(prop_id: int, prop: UpdateProperty):
 
 
 @authRouter.delete("/properties/{prop_id}", status_code=status.HTTP_204_NO_CONTENT)
+# TODO: remove this
 async def delete_property(prop_id: int):
     if (await collection.delete_one({"_id": prop_id})).deleted_count != 1:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Property {prop_id} not found")
