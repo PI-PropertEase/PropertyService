@@ -10,14 +10,13 @@ from ProjectUtils.MessagingService.queue_definitions import (
     WRAPPER_ZOOKING_ROUTING_KEY,
     PROPERTY_TO_ANALYTICS_QUEUE_ROUTING_KEY,
     ANALYTICS_TO_PROPERTY_QUEUE_NAME,
-    PROPERTY_TO_ANALYTICS_DATA_ROUTING_KEY
+    PROPERTY_TO_ANALYTICS_DATA_ROUTING_KEY, PROPERTY_TO_CALENDAR_ROUTING_KEY
 )
 from PropertyService.database import collection
 from PropertyService.schemas import Property, Service
 
 from ProjectUtils.MessagingService.schemas import to_json_aoi_bytes, MessageFactory, MessageType, from_json
 from ProjectUtils.MessagingService.queue_definitions import routing_key_by_service, WRAPPER_BROADCAST_ROUTING_KEY
-
 
 # TODO: fix this in the future
 channel.close()  # don't use the channel from this file, we need to use an async channel
@@ -26,7 +25,7 @@ async_exchange = None
 
 
 async def setup(loop):
-    connection = await connect_robust(host="rabbit_mq" ,loop=loop)
+    connection = await connect_robust(host="rabbit_mq", loop=loop)
 
     async_channel = await connection.channel()
 
@@ -94,7 +93,8 @@ async def import_properties(service: str, properties):
                 prop["services"] = [Service(service)]
                 serialized_prop = Property.model_validate(prop)
                 await collection.insert_one(serialized_prop.model_dump(by_alias=True))
-            else: # duplicate property
+                await publish_email_id_mapping_to_calendar_service(user_email, serialized_prop.id)
+            else:  # duplicate property
                 old_id = prop["_id"]
                 new_id = property_same_address["_id"]
                 # set old_new_id_map to notify wrappers of duplicate property
@@ -128,6 +128,7 @@ async def publish_update_property_message(prop_id: int, prop: dict):
 
     print("Craete Property Update Message", MessageFactory.create_property_update_message(prop_id, prop).__dict__)
 
+
 async def publish_get_recommended_price(properties: list):
     global async_exchange
     print("Sending price recommendation request")
@@ -139,6 +140,7 @@ async def publish_get_recommended_price(properties: list):
     )
     print("Price recommendation request sent")
 
+
 async def consume_price_recomendation(incoming_message):
     print("Received Message @ Price Recomendation queue")
     async with incoming_message.process():
@@ -147,10 +149,13 @@ async def consume_price_recomendation(incoming_message):
             if decoded_message.message_type == MessageType.RECOMMENDED_PRICE_RESPONSE:
                 for prop in decoded_message.body:
                     property = await collection.find_one({"_id": int(prop)})
-                    if "update_price_automatically" in property and property.get("update_price_automatically") is True and property.get("price") != decoded_message.body[prop]:
+                    if "update_price_automatically" in property and property.get(
+                            "update_price_automatically") is True and property.get("price") != decoded_message.body[
+                        prop]:
                         await collection.find_one_and_update(
                             {"_id": int(prop)},
-                            {"$set": {"recommended_price": decoded_message.body[prop], "price": decoded_message.body[prop]}}
+                            {"$set": {"recommended_price": decoded_message.body[prop],
+                                      "price": decoded_message.body[prop]}}
                         )
                         await publish_update_property_message(int(prop), {"price": decoded_message.body[prop]})
                     else:
@@ -158,10 +163,11 @@ async def consume_price_recomendation(incoming_message):
                             {"_id": int(prop)},
                             {"$set": {"recommended_price": decoded_message.body[prop]}}
                         )
-                    
+
             print("Price recommendation response processed")
         except Exception as e:
             print("Error while processing message:", e)
+
 
 async def publish_send_data_to_analytics(properties: list):
     global async_exchange
@@ -172,3 +178,13 @@ async def publish_send_data_to_analytics(properties: list):
         message=to_json_aoi_bytes(message)
     )
     print("Data sent to analytics")
+
+
+async def publish_email_id_mapping_to_calendar_service(email: str, prop_id: int):
+    global async_exchange
+    print(f"Publishing property id {prop_id} to calendar service")
+    await async_exchange.publish(
+        routing_key=PROPERTY_TO_CALENDAR_ROUTING_KEY,
+        message=to_json_aoi_bytes(MessageFactory.create_email_property_id_mapping_message(email, prop_id))
+    )
+    print("Property id published to calendar service")
