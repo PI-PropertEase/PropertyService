@@ -78,7 +78,7 @@ async def update_property(prop_id: int, prop: UpdateProperty, user_email: str = 
         return_document=ReturnDocument.AFTER,
     )
     if update_result is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Property {prop_id} not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Property {prop_id} not found for user {user_email}")
     
     upd_attributes = upd_prop.keys()
     # make sure "after_commission" is always included in the message sent to wrappers
