@@ -93,7 +93,7 @@ async def import_properties(service: str, properties):
                 prop["services"] = [Service(service)]
                 serialized_prop = Property.model_validate(prop)
                 await collection.insert_one(serialized_prop.model_dump(by_alias=True))
-                await publish_email_id_mapping_to_calendar_service(user_email, serialized_prop["_id"])
+                await publish_email_id_mapping_to_calendar_service(user_email, serialized_prop.id)
             else:  # duplicate property
                 old_id = prop["_id"]
                 new_id = property_same_address["_id"]
