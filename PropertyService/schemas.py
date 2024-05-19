@@ -128,3 +128,5 @@ class PropertyForAnalytics(BaseModel):
     beds: int
     number_of_guests: int
     num_amenities: int
+    location: str
+    price: float

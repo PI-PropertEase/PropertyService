@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
     loop = asyncio.get_event_loop()
     await asyncio.ensure_future(setup(loop))
     asyncio.ensure_future(price_recommendation())
-    daily_time = time(hour=00, minute=00) 
+    daily_time = time(hour=22, minute=30) 
     scheduler.add_job(price_recommendation, 'cron', hour=daily_time.hour, minute=daily_time.minute)
     #scheduler.add_job(send_data_to_analytics, 'interval', minutes=1) #test
     scheduler.add_job(send_data_to_analytics, 'interval', hours=1)
@@ -118,13 +118,15 @@ async def price_recommendation():
                 
             propertyAnalytics = PropertyForAnalytics(
                 id = prop["_id"].__str__(),
-                latitude= random.uniform(-90, 90),
-                longitude= random.uniform(-180, 180),
+                latitude= round(random.uniform(36, 42), 5),
+                longitude= round(random.uniform(-9.5, -7), 5),
                 bathrooms = len(prop["bathrooms"].keys()),
                 bedrooms = len(prop["bedrooms"].keys()),
                 beds= num_beds,
                 number_of_guests = prop["number_guests"],
-                num_amenities = len(prop["amenities"]))
+                num_amenities = len(prop["amenities"]),
+                location = prop["location"],
+                price = prop["price"])
             
             propertiesAnalytics.append(propertyAnalytics)
         
