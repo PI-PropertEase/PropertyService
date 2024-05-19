@@ -118,8 +118,8 @@ async def price_recommendation():
                 
             propertyAnalytics = PropertyForAnalytics(
                 id = prop["_id"].__str__(),
-                latitude= random.uniform(36, 42),
-                longitude= random.uniform(-9, -7),
+                latitude= round(random.uniform(36, 42), 5),
+                longitude= round(random.uniform(-9.5, -7), 5),
                 bathrooms = len(prop["bathrooms"].keys()),
                 bedrooms = len(prop["bedrooms"].keys()),
                 beds= num_beds,
