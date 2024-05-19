@@ -151,6 +151,7 @@ async def send_data_to_analytics():
                 "beds": num_beds,
                 "number_of_guests": prop["number_guests"],
                 "num_amenities": len(prop["amenities"]),
+                "location": prop["location"],
                 "price": prop["price"]
             }
             
