@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
     loop = asyncio.get_event_loop()
     await asyncio.ensure_future(setup(loop))
     asyncio.ensure_future(price_recommendation())
-    daily_time = time(hour=00, minute=00) 
+    daily_time = time(hour=22, minute=30) 
     scheduler.add_job(price_recommendation, 'cron', hour=daily_time.hour, minute=daily_time.minute)
     #scheduler.add_job(send_data_to_analytics, 'interval', minutes=1) #test
     scheduler.add_job(send_data_to_analytics, 'interval', hours=1)
