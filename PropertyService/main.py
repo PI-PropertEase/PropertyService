@@ -38,7 +38,7 @@ async def lifespan(app: FastAPI):
 
 cred = credentials.Certificate(".secret.json")
 firebase_admin.initialize_app(cred)
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan, root_path="/api/PropertyService")
 authRouter = APIRouter(dependencies=[Depends(get_user)])
 
 
