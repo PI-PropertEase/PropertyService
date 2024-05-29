@@ -38,7 +38,15 @@ async def lifespan(app: FastAPI):
 
 cred = credentials.Certificate(".secret.json")
 firebase_admin.initialize_app(cred)
-app = FastAPI(lifespan=lifespan, root_path="/api/PropertyService")
+app = FastAPI(
+    lifespan=lifespan, 
+    root_path="/api/PropertyService",
+    title="PropertyService",
+    description="The Property Service exposes many endpoints for manipulating data related to properties, \
+        such as updating properties as obtaining data related to them, such as available amenities, bed types and bathroom fixtures. \
+        All endpoints require authorization, verified by the Authorization bearer token.",
+    version="1.0.0"
+)
 authRouter = APIRouter(dependencies=[Depends(get_user)])
 
 
@@ -48,19 +56,38 @@ def get_health():
     return {"status": "ok"}
 
 
-@authRouter.get("/properties", response_model=list[Property])
+@authRouter.get("/properties", response_model=list[Property],
+                summary="List all properties for a specific user.",
+                response_description="Return a list of all properties for a user, based on his authorization token."
+                )
 async def read_properties(user_email: str = Depends(get_user_email)):
     return await collection.find({"user_email": user_email}).to_list(1000)
 
 
-@authRouter.get("/properties/{prop_id}", response_model=Property, response_model_by_alias=False)
+@authRouter.get("/properties/{prop_id}", response_model=Property, response_model_by_alias=False,
+                summary="Get a specific property for a specific user.",
+                response_description="Return a specific property for a user, based on his authorization token.",
+                responses={
+                    status.HTTP_404_NOT_FOUND: {
+                        "description": "Property not found for given user.",
+                        "content": {"application/json": {"example": {"detail": "Property not found for given user."}}}
+                    }
+                })
 async def read_property(prop_id: int, user_email: str = Depends(get_user_email)):
     if (result := await collection.find_one({"_id": prop_id, "user_email": user_email})) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Property {prop_id} not found for user {user_email}")
     return result
 
 
-@authRouter.put("/properties/{prop_id}", response_model=Property, response_model_by_alias=False)
+@authRouter.put("/properties/{prop_id}", response_model=Property, response_model_by_alias=False,
+                summary="Update a specific property for a specific user.",
+                response_description="Return the updated property for a user, based on his authorization token.",
+                responses={
+                    status.HTTP_404_NOT_FOUND: {
+                        "description": "Property not found for given user.",
+                        "content": {"application/json": {"example": {"detail": "Property not found for given user."}}}
+                    }
+                })
 async def update_property(prop_id: int, prop: UpdateProperty, user_email: str = Depends(get_user_email)):
     upd_prop = {k: v for k, v in prop.model_dump().items() if v is not None}
 
@@ -91,20 +118,30 @@ async def update_property(prop_id: int, prop: UpdateProperty, user_email: str = 
     return update_result
 
     
-@authRouter.get("/amenities", response_model=list[Amenity])
+@authRouter.get("/amenities", response_model=list[Amenity],
+                summary="List all available amenities.",
+                response_description="Return a list of all available amenities.")
 async def get_amenities():
     return [a.value for a in Amenity]
     
 
-@authRouter.get("/bathroom_fixtures", response_model=list[BathroomFixture])
+@authRouter.get("/bathroom_fixtures", response_model=list[BathroomFixture],
+                summary="List all available bathroom fixtures.",
+                response_description="Return a list of all available bathroom fixtures.")
 async def get_bathroom_fixtures():
     return [bf.value for bf in BathroomFixture]
 
 
-@authRouter.get("/bed_types", response_model=list[BedType])
+@authRouter.get("/bed_types", response_model=list[BedType],
+                summary="List all available bed types.",
+                response_description="Return a list of all available bed types.")
 async def get_bed_types():
     return [b.value for b in BedType]
 
+"""
+    Called periodically to send AnalyticsService a message to get recommended prices, including
+    the properties' relevant features for price recommendation.
+"""
 async def price_recommendation():
     properties = await collection.find().to_list(1000)
     logger.info("Sending price recommendation request")
@@ -133,6 +170,11 @@ async def price_recommendation():
         await publish_get_recommended_price(propertiesAnalytics)
         return {"message": "Price recommendation request sent"}
     
+
+"""
+    Called periodically to send AnalyticsService a message with data for analytics purposes.
+    Sent data excludes anything that connects the property to a specific owner, such as their e-mail.
+"""
 async def send_data_to_analytics():
     properties = await collection.find().to_list(1000)
     logger.info("Sending data to analytics")
@@ -163,4 +205,4 @@ async def send_data_to_analytics():
 
         return {"message": "Data sent to analytics"}
 
-app.include_router(authRouter, tags=["auth"])
+app.include_router(authRouter, tags=["properties"])
