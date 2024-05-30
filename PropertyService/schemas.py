@@ -9,6 +9,7 @@ PyObjectId = Annotated[str, BeforeValidator(str)]
 TimeHourMinute = Annotated[str, Field(pattern=r'^(2[0-3]|[01][0-9]):([0-5][0-9])$')]
 PhoneNumber.phone_format = 'E164'  # 'INTERNATIONAL'
 
+
 class Service(str, Enum):
     ZOOKING = "zooking"
     CLICKANDGO = "clickandgo"
@@ -85,8 +86,16 @@ class Property(PropertyBase):
     price: float
     number_guests: int
     square_meters: int
-    bedrooms: dict[str, Bedroom]
-    bathrooms: dict[str, Bathroom]
+    bedrooms: dict[str, Bedroom] = Field(examples=[
+        {"bedroom1": {"beds": [{"number_beds": 2, "type": "single"}]}},
+        {"bedroom2": {"beds": [{"number_beds": 1, "type": "king"}]}},
+        {"bedroom3": {"beds": [{"number_beds": 1, "type": "queen"}]}},
+    ])
+    bathrooms: dict[str, Bathroom] = Field(examples=[
+        {"bathroom1": {"fixtures": ["bathtub", "shower"]}},
+        {"bathroom2": {"beds": ["shower", "bidet"]}},
+        {"bathroom3": {"beds": ["shower"]}},
+    ])
     amenities: list[Amenity]
     # if False, price updates will be set to the value that was updated
     # if True, price updates will be set a bit higher to compensate for commission, so property owner 
@@ -109,8 +118,16 @@ class UpdateProperty(PropertyBase):
     price: Optional[float] = None
     number_guests: Optional[int] = None
     square_meters: Optional[int] = None
-    bedrooms: Optional[dict[str, Bedroom]] = None
-    bathrooms: Optional[dict[str, Bathroom]] = None
+    bedrooms: Optional[dict[str, Bedroom]] = Field(default=None, examples=[
+        {"bedroom1": {"beds": [{"number_beds": 2, "type": "single"}]}},
+        {"bedroom2": {"beds": [{"number_beds": 1, "type": "king"}]}},
+        {"bedroom3": {"beds": [{"number_beds": 1, "type": "queen"}]}},
+    ])
+    bathrooms: Optional[dict[str, Bathroom]] = Field(default=None, examples=[
+        {"bathroom1": {"fixtures": ["bathtub", "shower"]}},
+        {"bathroom2": {"beds": ["shower", "bidet"]}},
+        {"bathroom3": {"beds": ["shower"]}},
+    ])
     amenities: Optional[list[Amenity]] = None
     after_commission: Optional[bool] = None
     house_rules: Optional[HouseRules] = None
@@ -118,6 +135,7 @@ class UpdateProperty(PropertyBase):
     cancellation_policy: Optional[str] = None
     contacts: Optional[list[Contact]] = None
     update_price_automatically: Optional[bool] = None
+
 
 class PropertyForAnalytics(BaseModel):
     id: str

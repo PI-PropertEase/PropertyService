@@ -120,21 +120,43 @@ async def update_property(prop_id: int, prop: UpdateProperty, user_email: str = 
     
 @authRouter.get("/amenities", response_model=list[Amenity],
                 summary="List all available amenities.",
-                response_description="Return a list of all available amenities.")
+                response_description="Return a list of all available amenities.",
+                responses={
+                    status.HTTP_200_OK: {
+                        "description": "Return a list of all available bathroom fixtures.",
+                        "content": {"application/json": {
+                            "example": ["free_wifi", "parking_space", "air_conditioner", "pool", "kitchen"]
+                        }}
+                    }
+                })
 async def get_amenities():
     return [a.value for a in Amenity]
     
 
 @authRouter.get("/bathroom_fixtures", response_model=list[BathroomFixture],
                 summary="List all available bathroom fixtures.",
-                response_description="Return a list of all available bathroom fixtures.")
+                response_description="Return a list of all available bathroom fixtures.",
+                responses={
+                    status.HTTP_200_OK: {
+                        "description": "Return a list of all available bathroom fixtures.",
+                        "content": {"application/json": {"example": ["bathtub", "shower", "bidet", "toilet"]}}
+                    }
+                })
 async def get_bathroom_fixtures():
     return [bf.value for bf in BathroomFixture]
 
 
 @authRouter.get("/bed_types", response_model=list[BedType],
                 summary="List all available bed types.",
-                response_description="Return a list of all available bed types.")
+                response_description="Return a list of all available bed types.",
+                responses={
+                    status.HTTP_200_OK: {
+                        "description": "Return a list of all available bathroom fixtures.",
+                        "content": {"application/json": {
+                            "example": ["single", "queen", "king"]
+                        }}
+                    }
+                })
 async def get_bed_types():
     return [b.value for b in BedType]
 
