@@ -123,7 +123,7 @@ async def update_property(prop_id: int, prop: UpdateProperty, user_email: str = 
                 response_description="Return a list of all available amenities.",
                 responses={
                     status.HTTP_200_OK: {
-                        "description": "Return a list of all available bathroom fixtures.",
+                        "description": "Return a list of all available amenities.",
                         "content": {"application/json": {
                             "example": ["free_wifi", "parking_space", "air_conditioner", "pool", "kitchen"]
                         }}
@@ -151,7 +151,7 @@ async def get_bathroom_fixtures():
                 response_description="Return a list of all available bed types.",
                 responses={
                     status.HTTP_200_OK: {
-                        "description": "Return a list of all available bathroom fixtures.",
+                        "description": "Return a list of all available bed types.",
                         "content": {"application/json": {
                             "example": ["single", "queen", "king"]
                         }}
