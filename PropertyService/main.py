@@ -70,7 +70,7 @@ async def read_properties(user_email: str = Depends(get_user_email)):
                 responses={
                     status.HTTP_404_NOT_FOUND: {
                         "description": "Property not found for given user.",
-                        "content": {"application/json": {"example": {"detail": "Property not found for given user."}}}
+                        "content": {"application/json": {"example": {"detail": "Property 0 not found for user user@example.com."}}}
                     }
                 })
 async def read_property(prop_id: int, user_email: str = Depends(get_user_email)):
@@ -85,7 +85,7 @@ async def read_property(prop_id: int, user_email: str = Depends(get_user_email))
                 responses={
                     status.HTTP_404_NOT_FOUND: {
                         "description": "Property not found for given user.",
-                        "content": {"application/json": {"example": {"detail": "Property not found for given user."}}}
+                        "content": {"application/json": {"example": {"detail": "Property 0 not found for user user@example.com."}}}
                     }
                 })
 async def update_property(prop_id: int, prop: UpdateProperty, user_email: str = Depends(get_user_email)):
