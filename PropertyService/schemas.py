@@ -10,6 +10,12 @@ TimeHourMinute = Annotated[str, Field(pattern=r'^(2[0-3]|[01][0-9]):([0-5][0-9])
 PhoneNumber.phone_format = 'E164'  # 'INTERNATIONAL'
 
 
+class Service(str, Enum):
+    ZOOKING = "zooking"
+    CLICKANDGO = "clickandgo"
+    EARTHSTAYIN = "earthstayin"
+
+
 class TimeSlot(BaseModel):
     begin_time: TimeHourMinute
     end_time: TimeHourMinute
@@ -75,12 +81,21 @@ class Property(PropertyBase):
     user_email: EmailStr
     title: str
     address: str
+    location: str
     description: str
     price: float
     number_guests: int
     square_meters: int
-    bedrooms: dict[str, Bedroom]
-    bathrooms: dict[str, Bathroom]
+    bedrooms: dict[str, Bedroom] = Field(examples=[
+        {"bedroom1": {"beds": [{"number_beds": 2, "type": "single"}]}},
+        {"bedroom2": {"beds": [{"number_beds": 1, "type": "king"}]}},
+        {"bedroom3": {"beds": [{"number_beds": 1, "type": "queen"}]}},
+    ])
+    bathrooms: dict[str, Bathroom] = Field(examples=[
+        {"bathroom1": {"fixtures": ["bathtub", "shower"]}},
+        {"bathroom2": {"beds": ["shower", "bidet"]}},
+        {"bathroom3": {"beds": ["shower"]}},
+    ])
     amenities: list[Amenity]
     # if False, price updates will be set to the value that was updated
     # if True, price updates will be set a bit higher to compensate for commission, so property owner 
@@ -90,6 +105,7 @@ class Property(PropertyBase):
     additional_info: str
     cancellation_policy: str
     contacts: list[Contact]
+    services: list[Service]
     recommended_price: Optional[float] = None
     update_price_automatically: Optional[bool] = False
 
@@ -97,12 +113,21 @@ class Property(PropertyBase):
 class UpdateProperty(PropertyBase):
     title: Optional[str] = None
     address: Optional[str] = None
+    location: Optional[str] = None
     description: Optional[str] = None
     price: Optional[float] = None
     number_guests: Optional[int] = None
     square_meters: Optional[int] = None
-    bedrooms: Optional[dict[str, Bedroom]] = None
-    bathrooms: Optional[dict[str, Bathroom]] = None
+    bedrooms: Optional[dict[str, Bedroom]] = Field(default=None, examples=[
+        {"bedroom1": {"beds": [{"number_beds": 2, "type": "single"}]}},
+        {"bedroom2": {"beds": [{"number_beds": 1, "type": "king"}]}},
+        {"bedroom3": {"beds": [{"number_beds": 1, "type": "queen"}]}},
+    ])
+    bathrooms: Optional[dict[str, Bathroom]] = Field(default=None, examples=[
+        {"bathroom1": {"fixtures": ["bathtub", "shower"]}},
+        {"bathroom2": {"beds": ["shower", "bidet"]}},
+        {"bathroom3": {"beds": ["shower"]}},
+    ])
     amenities: Optional[list[Amenity]] = None
     after_commission: Optional[bool] = None
     house_rules: Optional[HouseRules] = None
@@ -110,6 +135,7 @@ class UpdateProperty(PropertyBase):
     cancellation_policy: Optional[str] = None
     contacts: Optional[list[Contact]] = None
     update_price_automatically: Optional[bool] = None
+
 
 class PropertyForAnalytics(BaseModel):
     id: str
@@ -120,4 +146,5 @@ class PropertyForAnalytics(BaseModel):
     beds: int
     number_of_guests: int
     num_amenities: int
-
+    location: str
+    price: float

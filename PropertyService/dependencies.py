@@ -12,3 +12,6 @@ class UserBase(BaseModel):
 def get_user(res: Response, cred: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False))):
     decoded_token = decode_token(res, cred)
     return UserBase(**decoded_token)
+
+def get_user_email(user: UserBase = Depends(get_user)):
+    return user.email
